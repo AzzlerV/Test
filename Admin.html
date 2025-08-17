@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Eats - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-transition {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #f3f4f6; /* gray-100 */
+            font-weight: 500; /* font-medium */
+            color: #f59e0b; /* yellow-500, or a distinct color */
+        }
+        .mobile-nav-button.active {
+            color: #f59e0b; /* yellow-500 */
+        }
+        .bar-chart-container {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            border-left: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+            padding-left: 5px;
+            padding-bottom: 5px;
+            gap: 5px;
+        }
+        .bar {
+            width: 20px;
+            background-color: #f59e0b;
+            text-align: center;
+            color: white;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            position: relative;
+        }
+        .bar-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: #555;
+        }
+        .x-axis-label {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: #555;
+        }
+        .mobile-management-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 250px;
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 60;
+        }
+        .mobile-management-sidebar.open {
+            transform: translateX(0);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 55;
+            display: none;
+        }
+        .overlay.open {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Mobile Navigation (Admin Specific) -->
+    <nav class="lg:hidden bg-white shadow-md fixed bottom-0 left-0 right-0 z-50">
+        <div class="flex justify-around items-center py-3">
+            <button onclick="showView('dashboard')" class="mobile-nav-button text-gray-700 flex flex-col items-center" data-view="dashboard">
+                <i class="fas fa-tachometer-alt text-xl"></i>
+                <span class="text-xs">Dashboard</span>
+            </button>
+            <button onclick="showView('orders')" class="mobile-nav-button text-gray-700 flex flex-col items-center relative" data-view="orders">
+                <i class="fas fa-clipboard-list text-xl"></i>
+                <span class="text-xs">Orders</span>
+                <span id="pendingOrdersCountMobile" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">3</span>
+            </button>
+            <button onclick="showView('menu-management')" class="mobile-nav-button text-gray-700 flex flex-col items-center" data-view="menu-management">
+                <i class="fas fa-edit text-xl"></i>
+                <span class="text-xs">Menu</span>
+            </button>
+            <button onclick="showView('analytics')" class="mobile-nav-button text-gray-700 flex flex-col items-center" data-view="analytics">
+                <i class="fas fa-chart-line text-xl"></i>
+                <span class="text-xs">Analytics</span>
+            </button>
+            <!-- Link to Customer Panel for convenience (optional for production) -->
+            <a href="index.html" class="mobile-nav-button text-gray-700 flex flex-col items-center">
+                <i class="fas fa-utensils text-xl"></i>
+                <span class="text-xs">Customer</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Desktop Sidebar -->
+    <div class="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-md sidebar-transition z-10">
+        <div class="w-full p-4">
+            <div class="text-center mb-8 mt-4">
+                <img src="https://placehold.co/150x50" alt="Table Eats logo" class="mx-auto" />
+            </div>
+            <div class="space-y-2">
+                <button onclick="showView('dashboard')" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center" data-view="dashboard">
+                    <i class="fas fa-tachometer-alt mr-3"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="showView('orders')" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center" data-view="orders">
+                    <i class="fas fa-clipboard-list mr-3"></i>
+                    <span>Orders</span>
+                    <span id="pendingOrdersCount" class="ml-auto bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
+                </button>
+                <button onclick="showView('menu-management')" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center" data-view="menu-management">
+                    <i class="fas fa-edit mr-3"></i>
+                    <span>Menu Management</span>
+                </button>
+                <button onclick="showView('customers')" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center" data-view="customers">
+                    <i class="fas fa-users mr-3"></i>
+                    <span>Customers</span>
+                </button>
+                <button onclick="showView('analytics')" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center" data-view="analytics">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    <span>Analytics</span>
+                </button>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t">
+                <a href="index.html" class="nav-button w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 flex items-center">
+                    <i class="fas fa-utensils mr-3"></i>
+                    <span>Customer View</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="min-h-screen lg:ml-64 pb-16 lg:pb-0">
+        <!-- Management Dashboard -->
+        <div id="managementDashboard" class="hidden bg-white p-6 rounded-lg shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white border rounded-lg p-6 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Total Orders Today</p>
+                            <h3 class="text-2xl font-bold">42</h3>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full">
+                            <i class="fas fa-shopping-cart text-yellow-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-green-500 text-sm mt-2">↑ 12% from yesterday</p>
+                </div>
+                <div class="bg-white border rounded-lg p-6 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Pending Orders</p>
+                            <h3 class="text-2xl font-bold" id="dashboardPendingOrdersCount">5</h3>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <i class="fas fa-clipboard-list text-blue-500"></i>
+                        </div>
+                    </div>
+                    <button onclick="showView('orders')" class="text-blue-500 text-sm mt-2 hover:underline">View All →</button>
+                </div>
+                <div class="bg-white border rounded-lg p-6 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-600">Today's Revenue</p>
+                            <h3 class="text-2xl font-bold">$1,284.50</h3>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <i class="fas fa-dollar-sign text-green-500"></i>
+                        </div>
+                    </div>
+                    <p class="text-green-500 text-sm mt-2">↑ 8% from yesterday</p>
+                </div>
+            </div>
+
+            <div class="bg-white border rounded-lg p-6 shadow-sm mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold">Recent Orders</h3>
+                    <button onclick="showView('orders')" class="text-sm text-yellow-600 hover:underline">View All</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left text-gray-500">
+                                <th class="pb-2">Order ID</th>
+                                <th class="pb-2">Table</th>
+                                <th class="pb-2">Items</th>
+                                <th class="pb-2">Amount</th>
+                                <th class="pb-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardRecentOrdersTableBody">
+                            <!-- Recent orders will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customersSection" class="hidden bg-white p-6 rounded-lg shadow-sm">
+            <h2 class="text-xl font-bold mb-4">Customer Management</h2>
+            <p class="text-gray-600 mb-4">This section displays a list of customers, their order history, and contact information.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border p-4 rounded-lg">
+                    <h3 class="font-semibold">Total Customers: 150</h3>
+                    <p class="text-sm text-gray-500">New customers today: 5</p>
+                </div>
+                <div class="border p-4 rounded-lg">
+                    <h3 class="font-semibold">Top Customer: John Doe</h3>
+                    <p class="text-sm text-gray-500">Total spent: \$1,200</p>
+                </div>
+            </div>
+            <div class="mt-6">
+                <h3 class="font-bold mb-3">Recent Customer Activity</h3>
+                <ul class="list-disc list-inside text-gray-700">
+                    <li>Jane Smith placed an order (ORD-1026)</li>
+                    <li>New registration: Alex Johnson</li>
+                    <li>Michael Brown viewed menu</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analyticsSection" class="hidden bg-white p-6 rounded-lg shadow-sm">
+            <h2 class="text-xl font-bold mb-4">Sales Analytics</h2>
+            <p class="text-gray-600 mb-4">This section provides insights into sales trends, popular items, and peak hours.</p>
+            
+            <div class="mb-6">
+                <label for="chartDataType" class="block text-sm font-medium text-gray-700 mb-2">Select Data Type:</label>
+                <select id="chartDataType" onchange="renderHourlyChart()" class="mt-1 block w-full md:w-1/3 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md">
+                    <option value="rush">Rush Hours</option>
+                    <option value="sales">Hourly Sales (\$)</option>
+                    <option value="orders">Hourly Orders</option>
+                </select>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg border relative">
+                <h3 class="font-bold mb-3">Hourly Performance</h3>
+                <div id="hourlyChart" class="bar-chart-container">
+                    <!-- Chart bars will be rendered here by JavaScript -->
+                </div>
+                <div class="flex justify-between text-xs text-gray-600 mt-2 px-2">
+                    <span>9 AM</span>
+                    <span>12 PM</span>
+                    <span>3 PM</span>
+                    <span>6 PM</span>
+                    <span>9 PM</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div class="border p-4 rounded-lg">
+                    <h3 class="font-semibold">Best Selling Item: Margherita Pizza</h3>
+                    <p class="text-sm text-gray-500">Units sold today: 15</p>
+                </div>
+                <div class="border p-4 rounded-lg">
+                    <h3 class="font-semibold">Peak Hour: 7:00 PM - 8:00 PM</h3>
+                    <p class="text-sm text-gray-500">Average orders per hour: 10</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Management -->
+        <div id="ordersManagement" class="hidden bg-white p-6 rounded-lg shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Order Management</h2>
+                <div class="flex space-x-2">
+                    <button onclick="archiveServedOrders()" class="px-4 py-2 border rounded-lg hover:bg-gray-100">Archive Served</button>
+                    <button id="toggleArchivedOrdersBtn" onclick="toggleArchivedOrders()" class="px-4 py-2 border rounded-lg hover:bg-gray-100">Show Archived</button>
+                    <div class="relative">
+                        <input type="text" placeholder="Search orders..." class="border rounded-lg pl-10 pr-4 py-2 w-64">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-500 border-b">
+                            <th class="pb-3">Order ID</th>
+                            <th class="pb-3">Table</th>
+                            <th class="pb-3">Items</th>
+                            <th class="pb-3">Total</th>
+                            <th class="pb-3">Status</th>
+                            <th class="pb-3">Time</th>
+                            <th class="pb-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managementOrdersTableBody">
+                        <!-- Orders will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Menu Management Section -->
+        <div id="menuManagement" class="hidden bg-white p-6 rounded-lg shadow-sm">
+            <h2 class="text-xl font-bold mb-4">Menu Management</h2>
+            
+            <!-- Add New Menu Item Section -->
+            <div id="addMenuItemSection" class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="toggleCollapse('addMenuItemContent')">
+                    <h3 class="font-medium text-lg flex items-center">
+                        <i class="fas fa-chevron-down mr-3 transition-transform duration-300" id="addMenuItemArrow"></i>
+                        Add New Menu Item
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button onclick="moveSectionUp(event, 'addMenuItemSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button onclick="moveSectionDown(event, 'addMenuItemSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="addMenuItemContent" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label for="newItemName" class="block text-sm font-medium text-gray-700">Item Name</label>
+                            <input type="text" id="newItemName" placeholder="e.g., Spicy Tuna Roll" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="newItemDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                            <input type="text" id="newItemDescription" placeholder="e.g., Fresh tuna, sriracha, avocado" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="newItemPrice" class="block text-sm font-medium text-gray-700">Price (\$)</label>
+                            <input type="number" id="newItemPrice" placeholder="e.g., 15.99" min="0" step="0.01" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="newItemCategory" class="block text-sm font-medium text-gray-700">Category</label>
+                            <select id="newItemCategory" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md">
+                                <option value="">Select Category</option>
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="newItemImage" class="block text-sm font-medium text-gray-700">Image URL</label>
+                            <input type="text" id="newItemImage" placeholder="e.g., https://placehold.co/300x200" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                        </div>
+                        <div class="flex items-center mt-6">
+                            <input type="checkbox" id="newItemPopular" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
+                            <label for="newItemPopular" class="ml-2 block text-sm text-gray-900">Mark as Popular</label>
+                        </div>
+                    </div>
+                    <button onclick="addMenuItem()" class="mt-6 bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bulk Import Section -->
+            <div id="bulkImportSection" class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="toggleCollapse('bulkImportContent')">
+                    <h3 class="font-medium text-lg flex items-center">
+                        <i class="fas fa-chevron-down mr-3 transition-transform duration-300" id="bulkImportArrow"></i>
+                        Bulk Import Menu Items
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button onclick="moveSectionUp(event, 'bulkImportSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button onclick="moveSectionDown(event, 'bulkImportSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="bulkImportContent" class="space-y-4">
+                    <p class="text-gray-600">Import menu items from a JSON file. The file should contain an array of menu item objects with `name`, `description`, `price`, `category`, `image`, and `popular` properties.</p>
+                    <input type="file" id="jsonFileInput" accept=".json" class="hidden" onchange="handleFileUpload(event)">
+                    <button onclick="document.getElementById('jsonFileInput').click()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md">
+                        <i class="fas fa-file-import mr-2"></i>Import from JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Existing Menu Items Section -->
+            <div id="existingMenuItemsSection" class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="toggleCollapse('existingMenuItemsContent')">
+                    <h3 class="font-medium text-lg flex items-center">
+                        <i class="fas fa-chevron-down mr-3 transition-transform duration-300" id="existingMenuItemsArrow"></i>
+                        Existing Menu Items
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button onclick="moveSectionUp(event, 'existingMenuItemsSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button onclick="moveSectionDown(event, 'existingMenuItemsSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="existingMenuItemsContent" class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Popular</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuItemsTable" class="bg-white divide-y divide-gray-200">
+                            <!-- Menu items will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Category Management Section -->
+            <div id="categoryManagementSection" class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="toggleCollapse('categoryManagementContent')">
+                    <h3 class="font-medium text-lg flex items-center">
+                        <i class="fas fa-chevron-down mr-3 transition-transform duration-300" id="categoryManagementArrow"></i>
+                        Category Management
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button onclick="moveSectionUp(event, 'categoryManagementSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button onclick="moveSectionDown(event, 'categoryManagementSection')" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="categoryManagementContent" class="space-y-4">
+                    <div class="border-b pb-4">
+                        <h4 class="font-medium mb-2">Add New Category</h4>
+                        <div class="flex space-x-2">
+                            <input type="text" id="newCategoryName" placeholder="e.g., Vegan" class="flex-grow border-gray-300 rounded-md shadow-sm p-2">
+                            <button onclick="addCategory()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md">
+                                <i class="fas fa-plus-circle mr-2"></i>Add
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-2">Existing Categories</h4>
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category Name</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTable" class="bg-white divide-y divide-gray-200">
+                                <!-- Categories will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Menu Item Modal -->
+    <div id="editMenuItemModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4 relative">
+            <h3 class="text-xl font-bold mb-4">Edit Menu Item</h3>
+            <button onclick="hideEditModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+            <input type="hidden" id="editItemId">
+            <div class="mb-4">
+                <label for="editItemName" class="block text-sm font-medium text-gray-700">Item Name</label>
+                <input type="text" id="editItemName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="mb-4">
+                <label for="editItemDescription" class="block text-sm font-medium text-gray-700">Description</label>
+                <textarea id="editItemDescription" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="editItemPrice" class="block text-sm font-medium text-gray-700">Price (\$)</label>
+                    <input type="number" id="editItemPrice" min="0" step="0.01" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="editItemCategory" class="block text-sm font-medium text-gray-700">Category</label>
+                    <select id="editItemCategory" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md">
+                        <!-- Options populated by JavaScript -->
+                    </select>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="editItemImage" class="block text-sm font-medium text-gray-700">Image URL</label>
+                <input type="text" id="editItemImage" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+            <div class="flex items-center mb-6">
+                <input type="checkbox" id="editItemPopular" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
+                <label for="editItemPopular" class="ml-2 block text-sm text-gray-900">Mark as Popular</label>
+            </div>
+            <button onclick="saveEditedMenuItem()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg">
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Data loaded from localStorage
+        let menuItems = JSON.parse(localStorage.getItem('menuItems')) || [
+            { id: 1, name: "Avocado Toast", description: "Sourdough bread with smashed avocado, cherry tomatoes, feta", price: 12.50, category: "breakfast", image: "https://placehold.co/300x200/EDF2F7/374151?text=Avocado+Toast", popular: true },
+            { id: 2, name: "Pancake Stack", description: "Fluffy pancakes with maple syrup and fresh berries", price: 10.00, category: "breakfast", image: "https://placehold.co/300x200/EDF2F7/374151?text=Pancakes", popular: true },
+            { id: 3, name: "Eggs Benedict", description: "Poached eggs on English muffins with hollandaise sauce", price: 14.00, category: "breakfast", image: "https://placehold.co/600x400/EDF2F7/374151?text=Eggs+Benedict" },
+            { id: 4, name: "Bruschetta", description: "Toasted bread topped with tomatoes, garlic, and basil", price: 8.50, category: "appetizers", image: "https://placehold.co/600x400/EDF2F7/374151?text=Bruschetta", popular: true },
+            { id: 5, name: "Calamari", description: "Crispy fried squid with lemon aioli", price: 12.00, category: "appetizers", image: "https://placehold.co/600x400/EDF2F7/374151?text=Calamari" },
+            { id: 6, "name": "Margherita Pizza", "description": "Classic pizza with tomato, mozzarella, and basil", "price": 16.50, "category": "mains", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Pizza", "popular": true },
+            { id: 7, "name": "Beef Burger", "description": "Angus beef patty with cheese, lettuce, and special sauce", "price": 14.50, "category": "mains", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Burger", "popular": true },
+            { id: 8, "name": "Grilled Salmon", "description": "Atlantic salmon with lemon butter and vegetables", "price": 22.00, "category": "mains", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Salmon" },
+            { id: 9, "name": "Tiramisu", "description": "Classic Italian dessert with coffee-soaked ladyfingers", "price": 8.00, "category": "desserts", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Tiramisu", "popular": true },
+            { id: 10, "name": "Chocolate Lava Cake", "description": "Warm chocolate cake with molten center and ice cream", "price": 9.50, "category": "desserts", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Lava+Cake" },
+            { id: 11, "name": "Iced Coffee", "description": "Cold brew coffee with milk and simple syrup", "price": 4.50, "category": "drinks", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Iced+Coffee" },
+            { id: 12, "name": "Mojito", "description": "White rum with lime, mint, and soda", "price": 10.00, "category": "drinks", "image": "https://placehold.co/600x400/EDF2F7/374151?text=Mojito", "popular": true }
+        ];
+
+        let sampleOrders = JSON.parse(localStorage.getItem('sampleOrders')) || [
+            { id: "ORD-1025", table: 1, items: 2, total: 25.00, status: "received", time: "12:40 PM", details: [
+                { name: "Avocado Toast", quantity: 1, price: 12.50 },
+                { name: "Iced Coffee", quantity: 1, price: 4.50 }
+            ]},
+            { id: "ORD-1024", table: 12, items: 3, total: 45.75, status: "preparing", time: "12:34 PM", details: [
+                { name: "Margherita Pizza", quantity: 1, price: 16.50 },
+                { name: "Tiramisu", quantity: 1, price: 8.00 },
+                { name: "Mojito", quantity: 2, price: 20.00 }
+            ]},
+            { id: "ORD-1023", table: 8, items: 2, total: 32.50, status: "ready", time: "12:15 PM", details: [
+                { name: "Beef Burger", quantity: 1, price: 14.50 },
+                { name: "Iced Coffee", quantity: 2, price: 9.00 }
+            ]},
+            { id: "ORD-1022", table: 5, items: 5, total: 78.20, status: "served", time: "11:45 AM", details: [
+                { name: "Grilled Salmon", quantity: 1, price: 22.00 },
+                { name: "Bruschetta", quantity: 1, price: 8.50 },
+                { name: "Calamari", quantity: 1, price: 12.00 },
+                { name: "Chocolate Lava Cake", quantity: 2, price: 19.00 }
+            ]},
+            { id: "ORD-1021", table: 3, items: 2, total: 21.50, status: "served", time: "11:30 AM", details: [
+                { name: "Avocado Toast", quantity: 1, price: 12.50 },
+                { name: "Pancake Stack", quantity: 1, price: 10.00 }
+            ]}
+        ];
+
+        let archivedOrders = JSON.parse(localStorage.getItem('archivedOrders')) || [];
+        let categories = JSON.parse(localStorage.getItem('categories')) || [
+            "breakfast", "appetizers", "mains", "desserts", "drinks"
+        ];
+
+        let currentView = 'dashboard';
+        let showArchived = false; // State variable to toggle between active/archived orders
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            renderOrdersTable(); // Render management orders
+            renderRecentOrdersDashboard(); // Render dashboard recent orders
+            updatePendingOrdersCount(); // Update dashboard pending count
+            populateCategoryDropdowns(); // Populate category dropdowns on load
+            renderCategoriesTable(); // Render categories table on load
+            showView(currentView); // Default admin screen is Dashboard
+            renderHourlyChart(); // Initial render of the analytics chart
+        });
+
+        // Orders management table rendering
+        function renderOrdersTable() {
+            // Reload data from localStorage to get latest changes
+            sampleOrders = JSON.parse(localStorage.getItem('sampleOrders')) || [];
+            archivedOrders = JSON.parse(localStorage.getItem('archivedOrders')) || [];
+
+            const tbody = document.getElementById('managementOrdersTableBody');
+            tbody.innerHTML = '';
+            
+            let ordersToDisplay = showArchived ? archivedOrders : sampleOrders.filter(order => order.status !== 'served');
+
+            if (ordersToDisplay.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">No ${showArchived ? 'archived' : 'active'} orders to display.</td></tr>`;
+                return;
+            }
+
+            ordersToDisplay.forEach(order => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50 cursor-pointer';
+                
+                let statusClass;
+                switch(order.status) {
+                    case 'received': 
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        break;
+                    case 'preparing': 
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        break;
+                    case 'ready': 
+                        statusClass = 'bg-blue-100 text-blue-800';
+                        break;
+                    case 'served': 
+                        statusClass = 'bg-green-100 text-green-800';
+                        break;
+                    default:
+                        statusClass = 'bg-gray-100 text-gray-800';
+                }
+                
+                row.innerHTML = `
+                    <td class="py-3" onclick="showOrderDetail('${order.id}')">${order.id}</td>
+                    <td onclick="showOrderDetail('${order.id}')">${order.table}</td>
+                    <td onclick="showOrderDetail('${order.id}')">${order.items}</td>
+                    <td onclick="showOrderDetail('${order.id}')">$${order.total.toFixed(2)}</td>
+                    <td onclick="showOrderDetail('${order.id}')"><span class="${statusClass} px-2 py-1 rounded text-xs capitalize">${order.status.replace('-', ' ')}</span></td>
+                    <td onclick="showOrderDetail('${order.id}')">${order.time}</td>
+                    <td>
+                        ${showArchived ? 
+                            `<span class="text-gray-500 text-sm">Archived</span>` :
+                            `<select onchange="updateOrderStatus('${order.id}', this.value)" 
+                                    class="border rounded-lg p-1 text-sm bg-white cursor-pointer">
+                                <option value="received" ${order.status === 'received' ? 'selected' : ''}>Order Received</option>
+                                <option value="preparing" ${order.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+                                <option value="ready" ${order.status === 'ready' ? 'selected' : ''}>Ready</option>
+                                <option value="served" ${order.status === 'served' ? 'selected' : ''}>Served</option>
+                            </select>`
+                        }
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Render recent orders for dashboard (top 3)
+        function renderRecentOrdersDashboard() {
+            sampleOrders = JSON.parse(localStorage.getItem('sampleOrders')) || []; // Reload sampleOrders
+            const tbody = document.getElementById('dashboardRecentOrdersTableBody');
+            tbody.innerHTML = '';
+            
+            // Get top 3 recent orders (excluding served for dashboard summary)
+            const recentOrders = sampleOrders.filter(order => order.status !== 'served').slice(0, 3); 
+
+            if (recentOrders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No recent active orders.</td></tr>`;
+                return;
+            }
+
+            recentOrders.forEach(order => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50 cursor-pointer';
+                row.onclick = () => showOrderDetail(order.id);
+                
+                let statusClass;
+                switch(order.status) {
+                    case 'received': 
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        break;
+                    case 'preparing': 
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        break;
+                    case 'ready': 
+                        statusClass = 'bg-blue-100 text-blue-800';
+                        break;
+                    case 'served': 
+                        statusClass = 'bg-green-100 text-green-800';
+                        break;
+                    default:
+                        statusClass = 'bg-gray-100 text-gray-800';
+                }
+                
+                row.innerHTML = `
+                    <td class="py-3">${order.id}</td>
+                    <td>${order.table}</td>
+                    <td>${order.items}</td>
+                    <td>$${order.total.toFixed(2)}</td>
+                    <td><span class="${statusClass} px-2 py-1 rounded text-xs capitalize">${order.status.replace('-', ' ')}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showOrderDetail(orderId) {
+            const order = sampleOrders.find(o => o.id === orderId) || archivedOrders.find(o => o.id === orderId); // Check both arrays
+            if (!order) return;
+            
+            alert(`Order details for ${orderId}:\n\n` + 
+                `Table: ${order.table}\n` +
+                `Status: ${order.status.replace('-', ' ')}\n` +
+                `Total: $${order.total.toFixed(2)}\n\n` +
+                `Items:\n` + 
+                order.details.map(i => `- ${i.name} (x${i.quantity}) - $${(i.price * i.quantity).toFixed(2)}`).join('\n'));
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            // Update management order
+            const managementOrderIndex = sampleOrders.findIndex(o => o.id === orderId);
+            if (managementOrderIndex !== -1) {
+                sampleOrders[managementOrderIndex].status = newStatus;
+                localStorage.setItem('sampleOrders', JSON.stringify(sampleOrders)); // Save updated sampleOrders
+                renderOrdersTable(); // Re-render management table
+                renderRecentOrdersDashboard(); // Update dashboard recent orders
+                updatePendingOrdersCount(); // Update dashboard pending count
+            }
+
+            // Update customer order (if it exists)
+            let customerOrders = JSON.parse(localStorage.getItem('customerOrders')) || [];
+            const customerOrderIndex = customerOrders.findIndex(o => o.id === orderId);
+            if (customerOrderIndex !== -1) {
+                customerOrders[customerOrderIndex].status = newStatus;
+                localStorage.setItem('customerOrders', JSON.stringify(customerOrders)); // Save to local storage
+            }
+        }
+
+        function updatePendingOrdersCount() {
+            sampleOrders = JSON.parse(localStorage.getItem('sampleOrders')) || []; // Reload sampleOrders
+            const pendingCount = sampleOrders.filter(o => o.status === 'received' || o.status === 'preparing').length;
+            document.getElementById('pendingOrdersCount').textContent = pendingCount;
+            document.getElementById('dashboardPendingOrdersCount').textContent = pendingCount; // Update dashboard card
+            const pendingOrdersCountMobile = document.getElementById('pendingOrdersCountMobile');
+            if (pendingOrdersCountMobile) {
+                pendingOrdersCountMobile.textContent = pendingCount;
+            }
+        }
+
+        // Archive served orders
+        function archiveServedOrders() {
+            sampleOrders = JSON.parse(localStorage.getItem('sampleOrders')) || []; // Reload sampleOrders
+            archivedOrders = JSON.parse(localStorage.getItem('archivedOrders')) || []; // Reload archivedOrders
+
+            const servedOrders = sampleOrders.filter(order => order.status === 'served');
+            if (servedOrders.length === 0) {
+                alert('No served orders to archive.');
+                return;
+            }
+
+            archivedOrders = archivedOrders.concat(servedOrders);
+            localStorage.setItem('archivedOrders', JSON.stringify(archivedOrders));
+
+            sampleOrders = sampleOrders.filter(order => order.status !== 'served');
+            localStorage.setItem('sampleOrders', JSON.stringify(sampleOrders));
+
+            alert(`${servedOrders.length} served orders have been archived.`);
+            
+            showArchived = false; 
+            document.getElementById('toggleArchivedOrdersBtn').textContent = 'Show Archived';
+
+            renderOrdersTable();
+            renderRecentOrdersDashboard();
+            updatePendingOrdersCount();
+        }
+
+        // Toggle between active and archived orders view
+        function toggleArchivedOrders() {
+            showArchived = !showArchived;
+            const button = document.getElementById('toggleArchivedOrdersBtn');
+            if (showArchived) {
+                button.textContent = 'Show Active';
+            } else {
+                button.textContent = 'Show Archived';
+            }
+            renderOrdersTable();
+        }
+
+        // Menu Management Functions
+        function saveMenuItemsToLocalStorage() {
+            localStorage.setItem('menuItems', JSON.stringify(menuItems));
+        }
+
+        function renderMenuItemsTable() {
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            const tbody = document.getElementById('menuItemsTable');
+            tbody.innerHTML = '';
+
+            if (menuItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No menu items to display.</td></tr>`;
+                return;
+            }
+
+            menuItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <img class="h-10 w-10 rounded-full" src="${item.image}" alt="${item.name}" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=No+Img';">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">${item.name}</div>
+                                <div class="text-sm text-gray-500">${item.description}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$${item.price.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">${item.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${item.popular ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Yes</span>' : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">No</span>'}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editMenuItemPrompt(${item.id})" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                        <button onclick="deleteMenuItem(${item.id})" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function addMenuItem() {
+            const name = document.getElementById('newItemName').value.trim();
+            const description = document.getElementById('newItemDescription').value.trim();
+            const price = parseFloat(document.getElementById('newItemPrice').value);
+            const category = document.getElementById('newItemCategory').value;
+            const image = document.getElementById('newItemImage').value.trim();
+            const popular = document.getElementById('newItemPopular').checked;
+            
+            if (!name || !description || isNaN(price) || price <= 0 || !category) {
+                alert('Please fill in all required fields (Name, Description, valid Price, Category).');
+                return;
+            }
+
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            const newItem = {
+                id: menuItems.length > 0 ? Math.max(...menuItems.map(i => i.id)) + 1 : 1,
+                name,
+                description,
+                price,
+                category,
+                image: image || 'https://placehold.co/300x200?text=' + name.replace(/\s/g, '+'), // Default image if none provided
+                popular
+            };
+
+            menuItems.push(newItem);
+            saveMenuItemsToLocalStorage();
+            renderMenuItemsTable(); // Update management table
+            
+            // Clear form fields
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemDescription').value = '';
+            document.getElementById('newItemPrice').value = '';
+            document.getElementById('newItemCategory').value = '';
+            document.getElementById('newItemImage').value = '';
+            document.getElementById('newItemPopular').checked = false;
+            alert('Menu item added successfully! Refresh customer view to see changes.');
+        }
+
+        function editMenuItemPrompt(id) {
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('editItemId').value = item.id;
+            document.getElementById('editItemName').value = item.name;
+            document.getElementById('editItemDescription').value = item.description;
+            document.getElementById('editItemPrice').value = item.price.toFixed(2);
+            document.getElementById('editItemCategory').value = item.category;
+            document.getElementById('editItemImage').value = item.image;
+            document.getElementById('editItemPopular').checked = item.popular;
+
+            document.getElementById('editMenuItemModal').classList.remove('hidden');
+        }
+
+        function hideEditModal() {
+            document.getElementById('editMenuItemModal').classList.add('hidden');
+        }
+
+        function saveEditedMenuItem() {
+            const id = parseInt(document.getElementById('editItemId').value);
+            const name = document.getElementById('editItemName').value.trim();
+            const description = document.getElementById('editItemDescription').value.trim();
+            const price = parseFloat(document.getElementById('editItemPrice').value);
+            const category = document.getElementById('editItemCategory').value;
+            const image = document.getElementById('editItemImage').value.trim();
+            const popular = document.getElementById('editItemPopular').checked;
+
+            if (!name || !description || isNaN(price) || price <= 0 || !category) {
+                alert('Please fill in all required fields (Name, Description, valid Price, Category).');
+                return;
+            }
+
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            const itemIndex = menuItems.findIndex(i => i.id === id);
+            if (itemIndex !== -1) {
+                menuItems[itemIndex] = {
+                    id: id,
+                    name: name,
+                    description: description,
+                    price: price,
+                    category: category,
+                    image: image || 'https://placehold.co/300x200?text=' + name.replace(/\s/g, '+'),
+                    popular: popular
+                };
+                saveMenuItemsToLocalStorage();
+                renderMenuItemsTable(); // Update management table
+                hideEditModal();
+                alert('Menu item updated successfully! Refresh customer view to see changes.');
+            } else {
+                alert('Error: Menu item not found.');
+            }
+        }
+
+        function deleteMenuItem(id) {
+            if (confirm('Are you sure you want to delete this menu item?')) {
+                menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+                menuItems = menuItems.filter(item => item.id !== id);
+                saveMenuItemsToLocalStorage();
+                renderMenuItemsTable(); // Update management table
+                alert('Menu item deleted successfully! Refresh customer view to see changes.');
+            }
+        }
+
+        // Category Management Functions
+        function saveCategoriesToLocalStorage() {
+            localStorage.setItem('categories', JSON.stringify(categories));
+        }
+
+        function renderCategoriesTable() {
+            categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+            const tbody = document.getElementById('categoriesTable');
+            tbody.innerHTML = '';
+
+            if (categories.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-gray-500">No categories to display.</td></tr>`;
+                return;
+            }
+
+            categories.forEach(category => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">${category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="renameCategory('${category}')" class="text-indigo-600 hover:text-indigo-900 mr-3">Rename</button>
+                        <button onclick="deleteCategory('${category}')" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function addCategory() {
+            const newCategoryNameInput = document.getElementById('newCategoryName');
+            const newCategory = newCategoryNameInput.value.trim().toLowerCase();
+
+            if (!newCategory) {
+                alert('Category name cannot be empty.');
+                return;
+            }
+            categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+            if (categories.includes(newCategory)) {
+                alert('Category already exists.');
+                return;
+            }
+
+            categories.push(newCategory);
+            saveCategoriesToLocalStorage();
+            renderCategoriesTable();
+            populateCategoryDropdowns(); // Update menu item category dropdowns
+            newCategoryNameInput.value = '';
+            alert(`Category "${newCategory}" added successfully! Refresh customer view to see changes.`);
+        }
+
+        function renameCategory(oldName) {
+            const newName = prompt(`Rename category "${oldName}" to:`, oldName);
+            if (newName === null || newName.trim() === '' || newName.trim().toLowerCase() === oldName.toLowerCase()) {
+                return; // User cancelled or entered same/empty name
+            }
+            const trimmedNewName = newName.trim().toLowerCase();
+
+            categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+            if (categories.includes(trimmedNewName)) {
+                alert(`Category "${trimmedNewName}" already exists.`);
+                return;
+            }
+
+            // Update category in menu items
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            menuItems.forEach(item => {
+                if (item.category === oldName) {
+                    item.category = trimmedNewName;
+                }
+            });
+            saveMenuItemsToLocalStorage();
+
+            // Update categories array
+            const index = categories.indexOf(oldName);
+            if (index !== -1) {
+                categories[index] = trimmedNewName;
+                saveCategoriesToLocalStorage();
+                renderCategoriesTable();
+                populateCategoryDropdowns(); // Update menu item category dropdowns
+                alert(`Category "${oldName}" renamed to "${trimmedNewName}" successfully! Refresh customer view to see changes.`);
+            }
+        }
+
+        function deleteCategory(categoryName) {
+            if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This cannot be undone.`)) {
+                return;
+            }
+
+            menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+            // Check if any menu items are linked to this category
+            const itemsInCategory = menuItems.filter(item => item.category === categoryName);
+            if (itemsInCategory.length > 0) {
+                alert(`Cannot delete category "${categoryName}" because ${itemsInCategory.length} menu item(s) are still assigned to it. Please reassign or delete those items first.`);
+                return;
+            }
+
+            categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+            categories = categories.filter(cat => cat !== categoryName);
+            saveCategoriesToLocalStorage();
+            renderCategoriesTable();
+            populateCategoryDropdowns(); // Update menu item category dropdowns
+            alert(`Category "${categoryName}" deleted successfully! Refresh customer view to see changes.`);
+        }
+
+        function populateCategoryDropdowns() {
+            categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+            const newItemCategorySelect = document.getElementById('newItemCategory');
+            const editItemCategorySelect = document.getElementById('editItemCategory');
+
+            // Clear existing options
+            newItemCategorySelect.innerHTML = '<option value="">Select Category</option>';
+            editItemCategorySelect.innerHTML = ''; // Edit modal doesn't need a "Select Category" default
+
+            categories.forEach(category => {
+                const option1 = document.createElement('option');
+                option1.value = category;
+                option1.textContent = category.charAt(0).toUpperCase() + category.slice(1); // Capitalize first letter
+                newItemCategorySelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = category;
+                option2.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                editItemCategorySelect.appendChild(option2);
+            });
+        }
+
+        // Collapsible Sections and Reordering
+        function toggleCollapse(contentId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(contentId.replace('Content', 'Arrow'));
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.classList.remove('fa-chevron-down');
+                arrow.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('hidden');
+                arrow.classList.remove('fa-chevron-up');
+                arrow.classList.add('fa-chevron-down');
+            }
+        }
+
+        function moveSectionUp(event, sectionId) {
+            event.stopPropagation(); // Prevent collapse from triggering
+            const section = document.getElementById(sectionId);
+            const parent = section.parentNode;
+            const prevSibling = section.previousElementSibling;
+
+            if (prevSibling && prevSibling.id.endsWith('Section')) { // Ensure it's another collapsible section
+                parent.insertBefore(section, prevSibling);
+            }
+        }
+
+        function moveSectionDown(event, sectionId) {
+            event.stopPropagation(); // Prevent collapse from triggering
+            const section = document.getElementById(sectionId);
+            const parent = section.parentNode;
+            const nextSibling = section.nextElementSibling;
+
+            if (nextSibling && nextSibling.id.endsWith('Section')) { // Ensure it's another collapsible section
+                parent.insertBefore(nextSibling, section);
+            }
+        }
+
+        // Function to handle file upload for bulk import
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedItems = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedItems)) {
+                        alert('Invalid file format. Expected a JSON array of menu items.');
+                        return;
+                    }
+
+                    menuItems = JSON.parse(localStorage.getItem('menuItems')) || []; // Reload menuItems
+                    categories = JSON.parse(localStorage.getItem('categories')) || []; // Reload categories
+
+                    let newItemsAdded = 0;
+                    let categoriesAdded = 0;
+                    let maxId = menuItems.length > 0 ? Math.max(...menuItems.map(i => i.id)) : 0;
+
+                    importedItems.forEach(item => {
+                        // Basic validation for imported item structure
+                        if (item.name && item.description && typeof item.price === 'number' && item.category) {
+                            // Assign a new unique ID
+                            maxId++;
+                            const newItem = {
+                                id: maxId,
+                                name: item.name,
+                                description: item.description,
+                                price: item.price,
+                                category: item.category.toLowerCase(),
+                                image: item.image || 'https://placehold.co/300x200?text=' + item.name.replace(/\s/g, '+'),
+                                popular: item.popular || false
+                            };
+
+                            // Check if category exists, if not, add it
+                            if (!categories.includes(newItem.category)) {
+                                categories.push(newItem.category);
+                                categoriesAdded++;
+                            }
+
+                            menuItems.push(newItem);
+                            newItemsAdded++;
+                        } else {
+                            console.warn('Skipping invalid item during import:', item);
+                        }
+                    });
+
+                    saveMenuItemsToLocalStorage();
+                    saveCategoriesToLocalStorage(); // Save new categories
+                    renderMenuItemsTable();
+                    renderCategoriesTable(); // Update categories table
+                    populateCategoryDropdowns(); // Update category dropdowns
+
+                    alert(`Successfully imported ${newItemsAdded} menu item(s) and added ${categoriesAdded} new categories. Refresh customer view to see changes.`);
+                } catch (error) {
+                    alert('Error reading or parsing file: ' + error.message);
+                    console.error('File import error:', error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // View management
+        function showView(view) {
+            currentView = view;
+            
+            // Hide all main content views
+            document.getElementById('managementDashboard').classList.add('hidden');
+            document.getElementById('ordersManagement').classList.add('hidden');
+            document.getElementById('menuManagement').classList.add('hidden');
+            document.getElementById('customersSection').classList.add('hidden');
+            document.getElementById('analyticsSection').classList.add('hidden');
+            
+            // Remove active class from all nav buttons (both desktop and mobile)
+            document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
+
+            // Show selected view and add active class to its button
+            if (view === 'dashboard') {
+                document.getElementById('managementDashboard').classList.remove('hidden');
+                renderRecentOrdersDashboard();
+                updatePendingOrdersCount();
+                document.querySelector('.nav-button[data-view="dashboard"]').classList.add('active');
+                document.querySelector('.mobile-nav-button[data-view="dashboard"]').classList.add('active');
+            } else if (view === 'orders') {
+                document.getElementById('ordersManagement').classList.remove('hidden');
+                showArchived = false;
+                document.getElementById('toggleArchivedOrdersBtn').textContent = 'Show Archived';
+                renderOrdersTable();
+                document.querySelector('.nav-button[data-view="orders"]').classList.add('active');
+                document.querySelector('.mobile-nav-button[data-view="orders"]').classList.add('active');
+            } else if (view === 'menu-management') {
+                document.getElementById('menuManagement').classList.remove('hidden');
+                renderMenuItemsTable();
+                renderCategoriesTable();
+                populateCategoryDropdowns();
+                document.querySelector('.nav-button[data-view="menu-management"]').classList.add('active');
+                document.querySelector('.mobile-nav-button[data-view="menu-management"]').classList.add('active');
+            } else if (view === 'customers') {
+                document.getElementById('customersSection').classList.remove('hidden');
+                document.querySelector('.nav-button[data-view="customers"]').classList.add('active');
+                document.querySelector('.mobile-nav-button[data-view="customers"]').classList.add('active');
+            } else if (view === 'analytics') {
+                document.getElementById('analyticsSection').classList.remove('hidden');
+                renderHourlyChart();
+                document.querySelector('.nav-button[data-view="analytics"]').classList.add('active');
+                document.querySelector('.mobile-nav-button[data-view="analytics"]').classList.add('active');
+            }
+        }
+
+        // Helper functions for order status display (duplicated for simplicity)
+        function getOrderStatusBadge(status) {
+            let badgeClass, badgeText;
+            switch(status) {
+                case 'received':
+                    badgeClass = 'bg-gray-100 text-gray-800';
+                    badgeText = 'Order Received';
+                    break;
+                case 'preparing':
+                    badgeClass = 'bg-yellow-100 text-yellow-800';
+                    badgeText = 'Preparing';
+                    break;
+                case 'ready':
+                    badgeClass = 'bg-blue-100 text-blue-800';
+                    badgeText = 'Ready for Pickup';
+                    break;
+                case 'served':
+                    badgeClass = 'bg-green-100 text-green-800';
+                    badgeText = 'Served';
+                    break;
+                default:
+                    badgeClass = 'bg-gray-100 text-gray-800';
+            }
+            return `<span class="${badgeClass} px-2 py-1 rounded-full text-xs">${badgeText}</span>`;
+        }
+
+        function getEstimatedWaitTime(status) {
+            switch(status) {
+                case 'received': return '20-25 mins';
+                case 'preparing': return '15-20 mins';
+                case 'ready': return 'Ready now';
+                case 'served': return 'Completed';
+                default: return 'N/A';
+            }
+        }
+
+        function getProgressPercentage(status) {
+            switch(status) {
+                case 'received': return 20;
+                case 'preparing': return 50;
+                case 'ready': return 80;
+                case 'served': return 100;
+                default: return 0;
+            }
+        }
+
+        // Analytics Chart Rendering (simplified for static data)
+        function renderHourlyChart() {
+            const chartContainer = document.getElementById('hourlyChart');
+            chartContainer.innerHTML = ''; // Clear previous bars
+
+            const dataType = document.getElementById('chartDataType').value;
+            let data = [];
+            let maxValue = 0;
+            let labelSuffix = '';
+
+            // Sample data for demonstration
+            const hourlyData = {
+                rush: [10, 15, 20, 25, 30, 35, 40, 45, 50, 40, 30, 20, 15, 10], // Example rush hour intensity
+                sales: [50, 75, 100, 120, 150, 180, 200, 220, 250, 200, 150, 100, 70, 50], // Example sales in $
+                orders: [2, 3, 5, 6, 8, 10, 12, 11, 9, 7, 5, 4, 3, 2] // Example number of orders
+            };
+
+            data = hourlyData[dataType];
+            maxValue = Math.max(...data);
+
+            if (dataType === 'sales') {
+                labelSuffix = '$';
+            } else if (dataType === 'orders') {
+                labelSuffix = ' orders';
+            } else {
+                labelSuffix = '%'; // For rush hour intensity
+            }
+
+            data.forEach((value, index) => {
+                const barHeight = (value / maxValue) * 100; // Scale to 100% of container height
+                const bar = document.createElement('div');
+                bar.className = 'bar relative';
+                bar.style.height = `${barHeight}%`;
+                bar.style.width = 'calc((100% / 14) - 5px)'; // Distribute evenly with gap
+                bar.innerHTML = `<span class="bar-label">${value}${labelSuffix}</span>`;
+                chartContainer.appendChild(bar);
+            });
+        }
+
+        // Initial collapse state (optional, can be set to 'hidden' in HTML directly)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Example: Start with 'Add New Menu Item' and 'Bulk Import' collapsed
+            toggleCollapse('addMenuItemContent'); 
+            toggleCollapse('bulkImportContent');
+        });
+    </script>
+</body>
+</html>
